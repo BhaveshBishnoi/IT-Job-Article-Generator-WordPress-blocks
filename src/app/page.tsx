@@ -1,7 +1,5 @@
 'use client';
 import { useState } from 'react';
-import Image from "next/image";
-import axios from 'axios';
 
 export default function Home() {
   const [formData, setFormData] = useState<{

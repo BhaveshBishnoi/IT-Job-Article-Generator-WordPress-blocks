@@ -10,7 +10,7 @@ export default function Home() {
     qualification: string;
     salary: string;
     workingDays: string;
-    noticePeriod: string;
+    location: string;
     companyOverview: string;
     aboutJobProfile: string;
     responsibilities: string;
@@ -26,7 +26,7 @@ export default function Home() {
     qualification: '',
     salary: '',
     workingDays: '',
-    noticePeriod: '',
+    location: '',
     companyOverview: '',
     aboutJobProfile: '',
     responsibilities: '',
@@ -114,6 +114,10 @@ export default function Home() {
             <td >${formData.experience}</td>
           </tr>
           <tr>
+            <td >Location</td>
+            <td >${formData.location}</td>
+          </tr>
+          <tr>
             <td >Qualification</td>
             <td>${formData.qualification}</td>
           </tr>
@@ -124,10 +128,6 @@ export default function Home() {
           <tr>
             <td >Official Website</td>
             <td><a href="${formData.websiteLink}" target="_blank" rel="nofollow">${formData.companyName}</a></td>
-          </tr>
-          <tr>
-            <td >Notice Period</td>
-            <td>${formData.noticePeriod}</td>
           </tr>
           <tr>
             <td >Working Days</td>

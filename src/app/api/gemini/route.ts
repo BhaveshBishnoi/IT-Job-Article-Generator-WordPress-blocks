@@ -17,16 +17,56 @@ export async function GET(request: Request) {
     let prompt = '';
     switch (type) {
       case 'companyOverview':
-        prompt = `Write 3 paragraphs about ${query} company. Each paragraph should be 20-30 words. Add <br> <br> after the first, second, and third paragraphs only. Keep it professional. `;
+        prompt = `Write 3 paragraphs about ${query} company. Format the response as:
+<!-- wp:paragraph -->
+<p>First paragraph (20-30 words)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Second paragraph (20-30 words)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Third paragraph (20-30 words)</p>
+<!-- /wp:paragraph -->
+Keep it professional.`;
         break;
       case 'aboutJobProfile':
-        prompt = `Write 3 paragraphs about the ${query} role. Each paragraph should be 25-35 words. Add <br> <br> after the first, second, and third paragraphs only. Keep it professional. writing tone is like opportunity for job`;
+        prompt = `Write 3 paragraphs about the ${query} role. Format the response as:
+<!-- wp:paragraph -->
+<p>First paragraph (25-35 words)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Second paragraph (25-35 words)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Third paragraph (25-35 words)</p>
+<!-- /wp:paragraph -->
+Keep it professional and focus on job opportunities.`;
         break;
       case 'responsibilities':
-        prompt = `Generate a list of 5-8 key responsibilities for ${query} position. Format as HTML list items with this structure: <li class="responsibility-item">Responsibility text</li>. Keep it professional.`;
+        prompt = `Generate a list of 5-8 key responsibilities for ${query} position. Format the response as:
+<!-- wp:list -->
+<ul>
+<li>Responsibility 1</li>
+<li>Responsibility 2</li>
+[and so on...]
+</ul>
+<!-- /wp:list -->
+Keep it professional.`;
         break;
       case 'requirements':
-        prompt = `Generate 5-8 key requirements for ${query} position. Format as HTML list items with this structure: <li class="requirement-item">Requirement text</li>. Include education, experience, and technical skills.`;
+        prompt = `Generate 5-8 key requirements for ${query} position. Format the response as:
+<!-- wp:list -->
+<ul>
+<li>Requirement 1</li>
+<li>Requirement 2</li>
+[and so on...]
+</ul>
+<!-- /wp:list -->
+Include education, experience, and technical skills.`;
         break;
       default:
         return new Response('Invalid type', { status: 400 });

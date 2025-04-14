@@ -1,86 +1,95 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// Initialize outside of function to reuse connection
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get('type');
-  const query = searchParams.get('query');
+  const type = searchParams.get("type");
+  const query = searchParams.get("query");
 
   if (!query || !type) {
-    return new Response('Missing parameters', { status: 400 });
+    return Response.json({ error: "Missing parameters" }, { status: 400 });
   }
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    let prompt = '';
-    switch (type) {
-      case 'companyOverview':
-        prompt = `Write 3 paragraphs about ${query} company. Format the response as:
-<!-- wp:paragraph -->
-<p>First paragraph (20-30 words)</p>
-<!-- /wp:paragraph -->
+    // Improved prompt templates with better formatting instructions
+    const prompts = {
+      companyOverview: `Provide a concise 3-paragraph overview of ${query} company. Each paragraph should be 20-30 words, professional tone, focusing on:
+1) Company background and industry
+2) Key products/services
+3) Market position or unique value proposition
 
+Format exactly as:
 <!-- wp:paragraph -->
-<p>Second paragraph (20-30 words)</p>
-<!-- /wp:paragraph -->
+<p>Paragraph text here</p>
+<!-- /wp:paragraph -->`,
 
-<!-- wp:paragraph -->
-<p>Third paragraph (20-30 words)</p>
-<!-- /wp:paragraph -->
-Keep it professional.`;
-        break;
-      case 'aboutJobProfile':
-        prompt = `Write 3 paragraphs about the ${query} role. Format the response as:
-<!-- wp:paragraph -->
-<p>First paragraph (25-35 words)</p>
-<!-- /wp:paragraph -->
+      aboutJobProfile: `Describe the ${query} role in 3 professional paragraphs (25-35 words each):
+1) General role overview
+2) Typical work environment
+3) Career growth opportunities
 
+Format exactly as:
 <!-- wp:paragraph -->
-<p>Second paragraph (25-35 words)</p>
-<!-- /wp:paragraph -->
+<p>Paragraph text here</p>
+<!-- /wp:paragraph -->`,
 
-<!-- wp:paragraph -->
-<p>Third paragraph (25-35 words)</p>
-<!-- /wp:paragraph -->
-Keep it professional and focus on job opportunities.`;
-        break;
-      case 'responsibilities':
-        prompt = `Generate a list of 5-8 key responsibilities for ${query} position. Format the response as:
+      responsibilities: `List 5-8 key responsibilities for a ${query} position. Each should be a concise bullet point (5-10 words). Focus on:
+- Core duties
+- Decision-making areas
+- Key deliverables
+
+Format exactly as:
 <!-- wp:list -->
 <ul>
 <li>Responsibility 1</li>
 <li>Responsibility 2</li>
-[and so on...]
 </ul>
-<!-- /wp:list -->
-Keep it professional.`;
-        break;
-      case 'requirements':
-        prompt = `Generate 5-8 key requirements for ${query} position. Format the response as:
+<!-- /wp:list -->`,
+
+      requirements: `Provide 5-8 requirements for ${query} position covering:
+- Education
+- Experience
+- Technical skills
+- Certifications
+- Soft skills
+
+Format exactly as:
 <!-- wp:list -->
 <ul>
 <li>Requirement 1</li>
 <li>Requirement 2</li>
-[and so on...]
 </ul>
-<!-- /wp:list -->
-Include education, experience, and technical skills.`;
-        break;
-      default:
-        return new Response('Invalid type', { status: 400 });
+<!-- /wp:list -->`,
+    };
+
+    if (!(type in prompts)) {
+      return Response.json({ error: "Invalid type" }, { status: 400 });
     }
 
+    const prompt = prompts[type as keyof typeof prompts];
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    return new Response(JSON.stringify({ content: text }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // Clean up response to ensure consistent formatting
+    const cleanText = text
+      .replace(/```html/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    return Response.json(
+      { content: cleanText },
+      { headers: { "Content-Type": "application/json" } }
+    );
   } catch (error) {
-    console.error('Gemini API Error:', error);
-    return new Response('Error processing request', { status: 500 });
+    console.error("Gemini API Error:", error);
+    return Response.json(
+      { error: "Error processing request" },
+      { status: 500 }
+    );
   }
-} 
+}

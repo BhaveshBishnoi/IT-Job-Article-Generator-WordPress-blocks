@@ -63,12 +63,12 @@ export async function POST(request: Request) {
       success: true,
       text: text.trim(),
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Server Error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Internal server error",
+        error: "Internal server error",
       },
       { status: 500 }
     );

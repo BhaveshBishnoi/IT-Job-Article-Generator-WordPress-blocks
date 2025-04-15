@@ -42,6 +42,7 @@ export default function JobPostGenerator() {
   const [wpBlockOutput, setWpBlockOutput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [generatedSections, setGeneratedSections] = useState({
     companyOverview: false,
@@ -72,7 +73,6 @@ export default function JobPostGenerator() {
   const handleBlur = async (field: keyof FormData, value: string) => {
     if (value.trim().length < 3) return;
 
-    // Auto-generate sections when company name or position is filled
     if (
       field === "companyName" &&
       value &&
@@ -100,7 +100,6 @@ export default function JobPostGenerator() {
     }
   };
 
-  // Update your generateWithGemini function
   const generateWithGemini = async (field: keyof FormData, prompt: string) => {
     setLoadingStates((prev) => ({ ...prev, [field]: true }));
     try {
@@ -141,6 +140,7 @@ export default function JobPostGenerator() {
 
     setIsLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       const prompt = `Create a professional WordPress post in block editor format about this job opening:
@@ -183,12 +183,14 @@ export default function JobPostGenerator() {
         body: JSON.stringify({ prompt }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to generate content");
       }
 
-      const data = await response.json();
       setWpBlockOutput(data.text);
+      setSuccessMessage("Job post generated successfully!");
     } catch (err) {
       setError(
         `Failed to generate WordPress post: ${
@@ -203,10 +205,78 @@ export default function JobPostGenerator() {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(wpBlockOutput);
-      alert("WordPress block code copied to clipboard!");
+      setSuccessMessage("Copied to clipboard!");
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch {
       setError("Failed to copy to clipboard");
     }
+  };
+
+  const formatLabel = (key: string) => {
+    return key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase());
+  };
+
+  const renderInputField = (
+    name: keyof FormData,
+    type: "text" | "textarea" = "text",
+    rows = 1
+  ) => {
+    const isTextarea = type === "textarea";
+    const InputComponent = isTextarea ? "textarea" : "input";
+    const isLoading = loadingStates[name as keyof typeof loadingStates];
+    const isRequired = ["companyName", "position"].includes(name);
+
+    return (
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-300">
+          {formatLabel(name)}
+          {isRequired && <span className="text-red-500 ml-1">*</span>}
+        </label>
+        <InputComponent
+          name={name}
+          value={formData[name]}
+          onChange={handleChange}
+          onBlur={(e) => handleBlur(name, e.target.value)}
+          type={!isTextarea ? type : undefined}
+          rows={isTextarea ? rows : undefined}
+          disabled={isLoading}
+          className={`w-full p-3 bg-gray-700 border ${
+            isRequired && !formData[name].trim()
+              ? "border-red-500"
+              : "border-gray-600"
+          } rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100 ${
+            isLoading ? "opacity-70 cursor-not-allowed" : ""
+          }`}
+        />
+        {isLoading && (
+          <div className="text-xs text-blue-400 flex items-center">
+            <svg
+              className="animate-spin h-3 w-3 mr-1"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            Generating...
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -221,7 +291,7 @@ export default function JobPostGenerator() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Input Form */}
           <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700">
             <h2 className="text-2xl font-semibold mb-6 text-blue-400">
@@ -229,240 +299,64 @@ export default function JobPostGenerator() {
             </h2>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded border border-red-700">
-                {error}
+              <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded border border-red-700 flex justify-between items-center">
+                <span>{error}</span>
                 <button
                   onClick={() => setError(null)}
-                  className="float-right text-red-300 hover:text-white"
+                  className="text-red-300 hover:text-white"
                 >
                   ×
                 </button>
               </div>
             )}
 
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-900/50 text-green-200 rounded border border-green-700">
+                {successMessage}
+              </div>
+            )}
+
             <div className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    onBlur={(e) => handleBlur("companyName", e.target.value)}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                    disabled={isLoading && generatedSections.companyOverview}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300">
-                    Position
-                  </label>
-                  <input
-                    type="text"
-                    name="position"
-                    value={formData.position}
-                    onChange={handleChange}
-                    onBlur={(e) => handleBlur("position", e.target.value)}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                    disabled={isLoading && generatedSections.aboutJobProfile}
-                  />
-                </div>
+                {renderInputField("companyName")}
+                {renderInputField("position")}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300">
-                    Experience
-                  </label>
-                  <input
-                    type="text"
-                    name="experience"
-                    value={formData.experience}
-                    onChange={handleChange}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300">
-                    Qualification
-                  </label>
-                  <input
-                    type="text"
-                    name="qualification"
-                    value={formData.qualification}
-                    onChange={handleChange}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  />
-                </div>
+                {renderInputField("experience")}
+                {renderInputField("qualification")}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300">
-                    Salary
-                  </label>
-                  <input
-                    type="text"
-                    name="salary"
-                    value={formData.salary}
-                    onChange={handleChange}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300">
-                    Working Days
-                  </label>
-                  <input
-                    type="text"
-                    name="workingDays"
-                    value={formData.workingDays}
-                    onChange={handleChange}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  />
-                </div>
+                {renderInputField("salary")}
+                {renderInputField("workingDays")}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300">
-                  Company Overview
-                </label>
-                <textarea
-                  name="companyOverview"
-                  value={formData.companyOverview}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  disabled={isLoading && generatedSections.companyOverview}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300">
-                  About Job Profile
-                </label>
-                <textarea
-                  name="aboutJobProfile"
-                  value={formData.aboutJobProfile}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  disabled={isLoading && generatedSections.aboutJobProfile}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300">
-                  Responsibilities
-                </label>
-                <textarea
-                  name="responsibilities"
-                  value={formData.responsibilities}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  disabled={isLoading && generatedSections.responsibilities}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300">
-                  Requirements
-                </label>
-                <textarea
-                  name="requirements"
-                  value={formData.requirements}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  disabled={isLoading && generatedSections.requirements}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300">
-                  Skills
-                </label>
-                <textarea
-                  name="skills"
-                  value={formData.skills}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                />
-              </div>
+              {renderInputField("location")}
+              {renderInputField("companyOverview", "textarea", 4)}
+              {renderInputField("aboutJobProfile", "textarea", 4)}
+              {renderInputField("responsibilities", "textarea", 4)}
+              {renderInputField("requirements", "textarea", 4)}
+              {renderInputField("skills", "textarea", 3)}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300">
-                    Apply Link
-                  </label>
-                  <input
-                    type="text"
-                    name="applyLink"
-                    value={formData.applyLink}
-                    onChange={handleChange}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300">
-                    HR Email
-                  </label>
-                  <input
-                    type="text"
-                    name="hrEmail"
-                    value={formData.hrEmail}
-                    onChange={handleChange}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                  />
-                </div>
+                {renderInputField("applyLink")}
+                {renderInputField("hrEmail")}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300">
-                  Website Link
-                </label>
-                <input
-                  type="text"
-                  name="websiteLink"
-                  value={formData.websiteLink}
-                  onChange={handleChange}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-100"
-                />
-              </div>
+              {renderInputField("websiteLink")}
 
               <button
                 onClick={generateWpBlockPost}
                 disabled={isLoading}
-                className={`w-full py-3 px-4 rounded-md font-medium transition ${
+                className={`w-full py-3 px-4 rounded-md font-medium transition flex items-center justify-center ${
                   isLoading
                     ? "bg-gray-600 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
                 {isLoading ? (
-                  <span className="flex items-center justify-center">
+                  <>
                     <svg
                       className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                       xmlns="http://www.w3.org/2000/svg"
@@ -484,7 +378,7 @@ export default function JobPostGenerator() {
                       ></path>
                     </svg>
                     Generating...
-                  </span>
+                  </>
                 ) : (
                   "Generate WordPress Post"
                 )}
@@ -493,7 +387,7 @@ export default function JobPostGenerator() {
           </div>
 
           {/* Output Preview */}
-          <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700 flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold text-blue-400">
                 WordPress Block Output
@@ -517,13 +411,13 @@ export default function JobPostGenerator() {
               )}
             </div>
 
-            <div className="bg-gray-900 p-4 rounded-md border border-gray-700">
+            <div className="bg-gray-900 p-4 rounded-md border border-gray-700 flex-grow overflow-hidden">
               {wpBlockOutput ? (
-                <pre className="whitespace-pre-wrap text-sm font-mono text-gray-300 overflow-auto max-h-[70vh]">
+                <pre className="whitespace-pre-wrap text-sm font-mono text-gray-300 h-full overflow-auto">
                   {wpBlockOutput}
                 </pre>
               ) : (
-                <div className="text-center py-10 text-gray-500">
+                <div className="text-center py-10 text-gray-500 h-full flex flex-col items-center justify-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-12 w-12 mx-auto mb-3 opacity-50"

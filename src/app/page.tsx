@@ -80,22 +80,22 @@ export default function JobPostGenerator() {
     ) {
       await generateWithGemini(
         "companyOverview",
-        `Write a 3-paragraph professional overview for ${value} company. Focus on company history, mission, and values.`
+        `Write a 3-paragraph professional overview for ${value} company. Focus on company history, mission, and values. also rewrite content in easy and human language.`
       );
     }
 
     if (field === "position" && value && !generatedSections.aboutJobProfile) {
       await generateWithGemini(
         "aboutJobProfile",
-        `Write a detailed job profile description for a ${value} position. Include what the role entails and its importance in the company.`
+        `Write a detailed job profile description for a ${value} position. Include what the role entails and its importance in the company. also rewrite content in easy and human language.`
       );
       await generateWithGemini(
         "responsibilities",
-        `Create a bullet point list of key responsibilities for a ${value} position. Make each point concise but descriptive.`
+        `Create a bullet point list of key responsibilities for a ${value} position. Make each point concise but descriptive. also rewrite content in easy and human language.`
       );
       await generateWithGemini(
         "requirements",
-        `Create a bullet point list of requirements for a ${value} position. Include education, experience, and certifications if needed.`
+        `Create a bullet point list of requirements for a ${value} position. Include education, experience, and certifications if needed. also rewrite content in easy and human language.`
       );
     }
   };
@@ -171,7 +171,7 @@ export default function JobPostGenerator() {
         5. Responsibilities list
         6. Requirements list
         7. Skills section
-        8. How to apply section
+        8. How to apply section Add Apply Now Button
       - Make sure the content is SEO optimized
       - Use clean, professional language`;
 

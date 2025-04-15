@@ -50,11 +50,21 @@ export default function JobPostGenerator() {
     requirements: false,
   });
 
+  const [loadingStates, setLoadingStates] = useState({
+    companyOverview: false,
+    aboutJobProfile: false,
+    responsibilities: false,
+    requirements: false,
+    generatingPost: false,
+  });
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -63,7 +73,11 @@ export default function JobPostGenerator() {
     if (value.trim().length < 3) return;
 
     // Auto-generate sections when company name or position is filled
-    if (field === "companyName" && value && !generatedSections.companyOverview) {
+    if (
+      field === "companyName" &&
+      value &&
+      !generatedSections.companyOverview
+    ) {
       await generateWithGemini(
         "companyOverview",
         `Write a 3-paragraph professional overview for ${value} company. Focus on company history, mission, and values.`
@@ -86,8 +100,9 @@ export default function JobPostGenerator() {
     }
   };
 
+  // Update your generateWithGemini function
   const generateWithGemini = async (field: keyof FormData, prompt: string) => {
-    setIsLoading(true);
+    setLoadingStates((prev) => ({ ...prev, [field]: true }));
     try {
       const response = await fetch("/api/gemini", {
         method: "POST",
@@ -97,21 +112,24 @@ export default function JobPostGenerator() {
         body: JSON.stringify({ prompt }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to generate content");
       }
 
-      const data = await response.json();
       setFormData((prev) => ({ ...prev, [field]: data.text }));
       setGeneratedSections((prev) => ({ ...prev, [field]: true }));
     } catch (err) {
       setError(
-        `Failed to generate ${field.replace(/([A-Z])/g, " $1").toLowerCase()}: ${
+        `Failed to generate ${field
+          .replace(/([A-Z])/g, " $1")
+          .toLowerCase()}: ${
           err instanceof Error ? err.message : "Unknown error"
         }`
       );
     } finally {
-      setIsLoading(false);
+      setLoadingStates((prev) => ({ ...prev, [field]: false }));
     }
   };
 

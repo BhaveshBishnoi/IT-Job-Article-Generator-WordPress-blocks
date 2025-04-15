@@ -1,53 +1,74 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) {
+    return NextResponse.json(
+      { success: false, error: "API key not configured" },
+      { status: 500 }
+    );
+  }
+
+  // Updated API endpoint with correct model name
+  const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`;
+
   try {
     const { prompt } = await request.json();
-    
+
     if (!prompt) {
       return NextResponse.json(
-        { error: 'Prompt is required' }, 
+        { success: false, error: "Prompt is required" },
         { status: 400 }
       );
     }
 
-    // For longer prompts, use gemini-pro (for shorter, faster responses)
-    const model = genAI.getGenerativeModel({ 
-      model: prompt.length > 1000 ? 'gemini-pro' : 'gemini-pro'
+    const response = await fetch(GEMINI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.9,
+          topK: 40,
+          maxOutputTokens: 2048,
+        },
+      }),
     });
 
-    // Set generation configuration
-    const generationConfig = {
-      temperature: 0.7,  // Controls randomness (0.0 to 1.0)
-      topP: 0.9,         // Nucleus sampling
-      topK: 40,          // Top-k sampling
-      maxOutputTokens: 2048,
-    };
+    const data = await response.json();
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig,
+    if (!response.ok) {
+      console.error("Gemini API Error:", data);
+      return NextResponse.json(
+        {
+          success: false,
+          error: data.error?.message || "API request failed",
+          details: data,
+        },
+        { status: response.status }
+      );
+    }
+
+    // Updated response parsing for Gemini 1.5 Pro
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return NextResponse.json({
+      success: true,
+      text: text.trim(),
     });
-
-    const response = await result.response;
-    const text = response.text();
-
-    // Clean up response for WordPress block format
-    const cleanedText = text
-      .replace(/```html/g, '')
-      .replace(/```/g, '')
-      .trim();
-
-    return NextResponse.json({ text: cleanedText });
-  } catch (error) {
-    console.error('Error calling Gemini API:', error);
+  } catch (error: any) {
+    console.error("Server Error:", error);
     return NextResponse.json(
-      { 
-        error: 'Failed to generate content',
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: error.message || "Internal server error",
       },
       { status: 500 }
     );

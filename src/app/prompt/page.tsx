@@ -42,7 +42,7 @@ export default function HiringPromptGenerator() {
     const prompt = `**Prompt Template for Assistant:**
 
 > Task:
-> You are an expert content creator specializing in recruitment content. Create a high-converting, SEO-optimized hiring article in WP-block format, comparable in style and detail to premium job portals like openhiring.in's featured posts. Structure it for maximum clarity, engagement, and search engine appeal while maintaining professional credibility.
+> You are an expert content creator specializing in recruitment content. Create a high-converting, SEO-optimized hiring article in wordpress block editor code format, comparable in style and detail to premium job portals like openhiring.in's featured posts. Structure it for maximum clarity, engagement, and search engine appeal while maintaining professional credibility.
 
 > Input Details:
 > - Company Name: ${formData.companyName || "[TO_BE_EXTRACTED]"}
@@ -67,7 +67,7 @@ export default function HiringPromptGenerator() {
 
 > Article rules for AI 
 
-Must send articles in wp-block code formet and also don't send any refrence links that used for research just text and only hiring company website link will provided in article
+Must send articles in wordpress block editor code formet and also don't send any refrence links that used for research just text and only hiring company website link will provided in article
 
 Must send detailed Catchy Title targeting Google Discover that is clickable just after reading
 
@@ -178,7 +178,7 @@ Create a detailed table with extracted information:
 - Add internal linking opportunities
 
 > Final Output Requirements:
-- Complete WP-block structured article (2000-2500 words)
+- Complete wordpress block editor code structured article (2000-2500 words)
 - Ready for direct publishing without editing
 - All information sourced from the provided job post link
 - No external links unless specifically mentioned in source

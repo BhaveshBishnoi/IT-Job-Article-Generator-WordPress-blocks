@@ -9,8 +9,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Updated API endpoint with correct model name
-  const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`;
+  const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
   try {
     const { prompt } = await request.json();
@@ -43,32 +42,37 @@ export async function POST(request: Request) {
       }),
     });
 
-    const data = await response.json();
-
+    // First check if response is OK
     if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      return NextResponse.json(
-        {
-          success: false,
-          error: data.error?.message || "API request failed",
-          details: data,
-        },
-        { status: response.status }
-      );
+      // Try to parse error response as JSON
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { error: await response.text() };
+      }
+      throw new Error(errorData.error?.message || "API request failed");
     }
 
-    // Updated response parsing for Gemini 1.5 Pro
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    // Parse successful response
+    const data = await response.json();
+
+    // Validate response structure
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error("Invalid response structure from Gemini API");
+    }
+
     return NextResponse.json({
       success: true,
-      text: text.trim(),
+      text: data.candidates[0].content.parts[0].text.trim(),
     });
   } catch (error) {
-    console.error("Server Error:", error);
+    console.error("Gemini API Error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Internal server error",
+        error: "Failed to generate content",
+        details: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 }
     );

@@ -102,6 +102,8 @@ export default function JobPostGenerator() {
 
   const generateWithGemini = async (field: keyof FormData, prompt: string) => {
     setLoadingStates((prev) => ({ ...prev, [field]: true }));
+    setError(null);
+
     try {
       const response = await fetch("/api/gemini", {
         method: "POST",
@@ -111,21 +113,34 @@ export default function JobPostGenerator() {
         body: JSON.stringify({ prompt }),
       });
 
+      // First check if response is OK
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: await response.text() };
+        }
+        throw new Error(errorData.error || "API request failed");
+      }
+
+      // Parse successful response
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to generate content");
+      // Validate response structure
+      if (!data.success || !data.text) {
+        throw new Error(data.error || "Invalid response from server");
       }
 
       setFormData((prev) => ({ ...prev, [field]: data.text }));
       setGeneratedSections((prev) => ({ ...prev, [field]: true }));
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+
       setError(
         `Failed to generate ${field
           .replace(/([A-Z])/g, " $1")
-          .toLowerCase()}: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }`
+          .toLowerCase()}: ${errorMessage}`
       );
     } finally {
       setLoadingStates((prev) => ({ ...prev, [field]: false }));

@@ -71,6 +71,10 @@ Must send articles in wordpress block editor code formet and also don't send any
 
 Must send detailed Catchy Title targeting Google Discover that is clickable just after reading
 
+must know don't add any sources indigations like links or number like - [11][19] these make sure don't add these things.
+
+
+
 > Article Structure & Format:
 
 **Introduction Paragraph:**
